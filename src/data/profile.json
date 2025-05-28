@@ -1,0 +1,38 @@
+{
+  "name": "Athena Au",
+  "bio": "Explorer of cities, lover of brunch, builder of communities.",
+  "profileImageUrl": "https://example.com/images/athena.jpg",
+  "birthdate": "1995-03-15",
+  "email": "athena.au@example.com",
+  "phone": "+852 9876 5432",
+  "interests": ["Photography", "Travel", "Food & Dining", "Technology", "Art"],
+  "location": "Hong Kong",
+  "occupation": "Community Manager",
+  "attendedEvents": [
+    {
+      "id": 101,
+      "title": "Sunset Rooftop Social",
+      "description": "Golden hour drinks with the Tova crew.",
+      "location": "The Crown, Central",
+      "date": "2025-06-10T17:30:00",
+      "rated": true,
+      "rating": 4,
+      "coordinates": {
+        "latitude": 22.2819,
+        "longitude": 114.1577
+      }
+    },
+    {
+      "id": 102,
+      "title": "Morning Matcha Meet",
+      "description": "Slow mornings, better conversations.",
+      "location": "Matchali, K11 Musea",
+      "date": "2025-06-03T09:00:00",
+      "rated": false,
+      "coordinates": {
+        "latitude": 22.2940,
+        "longitude": 114.1722
+      }
+    }
+  ]
+}
