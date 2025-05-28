@@ -129,29 +129,6 @@ src/
 - **Persistence**: Ratings save and display in list view
 - **Update Display**: Event cards show star ratings
 
-## Sample Data
-
-The app includes sample data for "Athena Au" with two events:
-1. **Sunset Rooftop Social** (The Crown, Central) - Pre-rated 4 stars
-2. **Morning Matcha Meet** (Matchali, K11 Musea) - Unrated
-
-Both events include real Hong Kong coordinates for map display.
-
-## Customization
-
-### Adding New Events
-Edit `src/data/profile.json` to add events with:
-- Basic info (title, description, location, date)
-- Coordinates for map display
-- Rating status
-
-### Styling
-Modify component stylesheets for:
-- Colors and themes
-- Layout and spacing
-- Typography
-- Animation effects
-
 
 ## Future Enhancements
 
