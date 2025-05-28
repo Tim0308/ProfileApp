@@ -12,8 +12,12 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { UserProfile } from '../types';
+import { AnimatedCard } from '../components/AnimatedCard';
+import { AnimatedButton } from '../components/AnimatedButton';
 import { EditProfileScreenNavigationProp, EditProfileScreenRouteProp } from '../types/navigation';
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../styles/theme';
 
 interface EditProfileScreenProps {
   navigation: EditProfileScreenNavigationProp;
@@ -26,304 +30,419 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
 }) => {
   const { profile, onUpdateProfile } = route.params;
   const [editedProfile, setEditedProfile] = useState<UserProfile>(profile);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [newInterest, setNewInterest] = useState('');
 
   const handleSave = useCallback(() => {
+    if (!editedProfile.name.trim()) {
+      Alert.alert('Error', 'Name is required');
+      return;
+    }
+    if (!editedProfile.bio.trim()) {
+      Alert.alert('Error', 'Bio is required');
+      return;
+    }
+    
     onUpdateProfile(editedProfile);
-    Alert.alert('Success', 'Profile updated successfully!', [
-      { text: 'OK', onPress: () => navigation.goBack() }
-    ]);
+    navigation.goBack();
+    Alert.alert('Success', 'Profile updated successfully!');
   }, [editedProfile, onUpdateProfile, navigation]);
 
-  const handleDateChange = useCallback((event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      setEditedProfile(prev => ({
-        ...prev,
-        birthdate: selectedDate.toISOString().split('T')[0],
-      }));
+  const handleAddInterest = useCallback(() => {
+    if (!newInterest.trim()) return;
+    
+    const interests = editedProfile.interests || [];
+    if (interests.includes(newInterest.trim())) {
+      Alert.alert('Duplicate', 'This interest already exists');
+      return;
     }
-  }, []);
-
-  const addInterest = useCallback(() => {
-    if (newInterest.trim() && !editedProfile.interests.includes(newInterest.trim())) {
-      setEditedProfile(prev => ({
-        ...prev,
-        interests: [...prev.interests, newInterest.trim()],
-      }));
-      setNewInterest('');
-    }
-  }, [newInterest, editedProfile.interests]);
-
-  const removeInterest = useCallback((interest: string) => {
+    
     setEditedProfile(prev => ({
       ...prev,
-      interests: prev.interests.filter(i => i !== interest),
+      interests: [...interests, newInterest.trim()],
+    }));
+    setNewInterest('');
+  }, [newInterest, editedProfile.interests]);
+
+  const handleRemoveInterest = useCallback((index: number) => {
+    setEditedProfile(prev => ({
+      ...prev,
+      interests: prev.interests?.filter((_, i) => i !== index) || [],
     }));
   }, []);
 
-  const formatDate = useCallback((dateString?: string) => {
-    if (!dateString) return 'Select Date';
-    return new Date(dateString).toLocaleDateString();
-  }, []);
-
-  const updateProfileField = useCallback((field: keyof UserProfile, value: string) => {
-    setEditedProfile(prev => ({ ...prev, [field]: value }));
-  }, []);
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} // This is the behavior for iOS
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20} 
-      >
-        {/* Header */}
-        <View style={styles.header}>
+  const renderHeader = () => (
+    <LinearGradient
+      colors={Colors.gradients.primary as [string, string]}
+      style={styles.headerGradient}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
+      <SafeAreaView style={styles.headerSafeArea}>
+        <View style={styles.headerContent}>
           <TouchableOpacity
             onPress={navigation.goBack}
             style={styles.backButton}
           >
-            <MaterialIcons name="arrow-back" size={24} color="#333" />
+            <MaterialIcons name="arrow-back" size={24} color={Colors.text.white} />
           </TouchableOpacity>
+          
           <Text style={styles.headerTitle}>Edit Profile</Text>
-          <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
-            <Text style={styles.saveButtonText}>Save</Text>
-          </TouchableOpacity>
+          
+          <View style={styles.headerSpacer} />
         </View>
+      </SafeAreaView>
+    </LinearGradient>
+  );
 
-        <ScrollView 
+  const renderPersonalInfo = () => (
+    <AnimatedCard style={styles.sectionCard}>
+      <View style={styles.sectionHeader}>
+        <MaterialIcons name="person" size={24} color={Colors.primary} />
+        <Text style={styles.sectionTitle}>Personal Information</Text>
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Full Name *</Text>
+        <TextInput
+          style={styles.textInput}
+          placeholder="Enter your full name"
+          placeholderTextColor={Colors.text.tertiary}
+          value={editedProfile.name}
+          onChangeText={(text) => setEditedProfile(prev => ({ ...prev, name: text }))}
+        />
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Occupation</Text>
+        <TextInput
+          style={styles.textInput}
+          placeholder="What do you do for work?"
+          placeholderTextColor={Colors.text.tertiary}
+          value={editedProfile.occupation || ''}
+          onChangeText={(text) => setEditedProfile(prev => ({ ...prev, occupation: text }))}
+        />
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Location</Text>
+        <View style={styles.inputWithIcon}>
+          <MaterialIcons name="location-on" size={20} color={Colors.text.tertiary} />
+          <TextInput
+            style={styles.textInputWithIcon}
+            placeholder="Where are you based?"
+            placeholderTextColor={Colors.text.tertiary}
+            value={editedProfile.location || ''}
+            onChangeText={(text) => setEditedProfile(prev => ({ ...prev, location: text }))}
+          />
+        </View>
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Bio *</Text>
+        <TextInput
+          style={[styles.textInput, styles.bioInput]}
+          placeholder="Tell us about yourself..."
+          placeholderTextColor={Colors.text.tertiary}
+          value={editedProfile.bio}
+          onChangeText={(text) => setEditedProfile(prev => ({ ...prev, bio: text }))}
+          multiline
+          numberOfLines={4}
+          textAlignVertical="top"
+        />
+      </View>
+    </AnimatedCard>
+  );
+
+  const renderContactInfo = () => (
+    <AnimatedCard style={styles.sectionCard}>
+      <View style={styles.sectionHeader}>
+        <MaterialIcons name="contact-mail" size={24} color={Colors.secondary} />
+        <Text style={styles.sectionTitle}>Contact Information</Text>
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Email</Text>
+        <View style={styles.inputWithIcon}>
+          <MaterialIcons name="email" size={20} color={Colors.text.tertiary} />
+          <TextInput
+            style={styles.textInputWithIcon}
+            placeholder="your.email@example.com"
+            placeholderTextColor={Colors.text.tertiary}
+            value={editedProfile.email || ''}
+            onChangeText={(text) => setEditedProfile(prev => ({ ...prev, email: text }))}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+        </View>
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Phone</Text>
+        <View style={styles.inputWithIcon}>
+          <MaterialIcons name="phone" size={20} color={Colors.text.tertiary} />
+          <TextInput
+            style={styles.textInputWithIcon}
+            placeholder="+1 (555) 123-4567"
+            placeholderTextColor={Colors.text.tertiary}
+            value={editedProfile.phone || ''}
+            onChangeText={(text) => setEditedProfile(prev => ({ ...prev, phone: text }))}
+            keyboardType="phone-pad"
+          />
+        </View>
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Birthdate</Text>
+        <View style={styles.inputWithIcon}>
+          <MaterialIcons name="cake" size={20} color={Colors.text.tertiary} />
+          <TextInput
+            style={styles.textInputWithIcon}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor={Colors.text.tertiary}
+            value={editedProfile.birthdate || ''}
+            onChangeText={(text) => setEditedProfile(prev => ({ ...prev, birthdate: text }))}
+          />
+        </View>
+      </View>
+    </AnimatedCard>
+  );
+
+  const renderInterests = () => (
+    <AnimatedCard style={styles.sectionCard}>
+      <View style={styles.sectionHeader}>
+        <MaterialIcons name="favorite" size={24} color={Colors.accent} />
+        <Text style={styles.sectionTitle}>Interests & Hobbies</Text>
+      </View>
+
+      <View style={styles.interestInputContainer}>
+        <TextInput
+          style={styles.interestInput}
+          placeholder="Add an interest..."
+          placeholderTextColor={Colors.text.tertiary}
+          value={newInterest}
+          onChangeText={setNewInterest}
+          onSubmitEditing={handleAddInterest}
+          returnKeyType="done"
+        />
+        <TouchableOpacity onPress={handleAddInterest} style={styles.addInterestButton}>
+          <MaterialIcons name="add" size={20} color={Colors.text.white} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.interestsContainer}>
+        {(editedProfile.interests || []).map((interest, index) => (
+          <View key={index} style={styles.interestTag}>
+            <Text style={styles.interestText}>{interest}</Text>
+            <TouchableOpacity
+              onPress={() => handleRemoveInterest(index)}
+              style={styles.removeInterestButton}
+            >
+              <MaterialIcons name="close" size={16} color={Colors.text.secondary} />
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
+    </AnimatedCard>
+  );
+
+  const renderSaveButton = () => (
+    <View style={styles.saveButtonContainer}>
+      <AnimatedButton
+        title="Save Changes"
+        onPress={handleSave}
+        variant="primary"
+        size="lg"
+        icon="save"
+        style={styles.saveButton}
+      />
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      {renderHeader()}
+      
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoid}
+      >
+        <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollViewContent}
-          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.formContainer}>
-            {/* Name */}
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Name</Text>
-              <TextInput
-                style={styles.input}
-                value={editedProfile.name}
-                onChangeText={(text) => updateProfileField('name', text)}
-                placeholder="Enter your name"
-                returnKeyType="next"
-              />
-            </View>
-
-            {/* Bio */}
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Bio</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={editedProfile.bio}
-                onChangeText={(text) => updateProfileField('bio', text)}
-                placeholder="Tell us about yourself"
-                multiline
-                numberOfLines={3}
-                returnKeyType="next"
-              />
-            </View>
-
-            {/* Email */}
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={styles.input}
-                value={editedProfile.email || ''}
-                onChangeText={(text) => updateProfileField('email', text)}
-                placeholder="Enter your email"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                returnKeyType="next"
-              />
-            </View>
-
-            {/* Phone */}
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Phone</Text>
-              <TextInput
-                style={styles.input}
-                value={editedProfile.phone || ''}
-                onChangeText={(text) => updateProfileField('phone', text)}
-                placeholder="Enter your phone number"
-                keyboardType="phone-pad"
-                returnKeyType="next"
-              />
-            </View>
-
-            {/* Location */}
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Location</Text>
-              <TextInput
-                style={styles.input}
-                value={editedProfile.location || ''}
-                onChangeText={(text) => updateProfileField('location', text)}
-                placeholder="Enter your location"
-                returnKeyType="next"
-              />
-            </View>
-
-            {/* Interests */}
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Interests</Text>
-              <View style={styles.interestsContainer}>
-                {editedProfile.interests.map((interest, index) => (
-                  <View key={index} style={styles.interestTag}>
-                    <Text style={styles.interestText}>{interest}</Text>
-                    <TouchableOpacity
-                      onPress={() => removeInterest(interest)}
-                      style={styles.removeInterestButton}
-                    >
-                      <MaterialIcons name="close" size={16} color="#666" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-              <View style={styles.addInterestContainer}>
-                <TextInput
-                  style={[styles.input, styles.addInterestInput]}
-                  value={newInterest}
-                  onChangeText={setNewInterest}
-                  placeholder="Add new interest"
-                  onSubmitEditing={addInterest}
-                  returnKeyType="done"
-                  blurOnSubmit={false}
-                />
-                <TouchableOpacity onPress={addInterest} style={styles.addButton}>
-                  <MaterialIcons name="add" size={24} color="#007AFF" />
-                </TouchableOpacity>
-              </View>
-            </View>
+          <View style={styles.contentContainer}>
+            {renderPersonalInfo()}
+            {renderContactInfo()}
+            {renderInterests()}
+            {renderSaveButton()}
             
-            {/* Add some bottom padding to ensure content is accessible above keyboard */}
             <View style={styles.bottomSpacer} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.background.secondary,
   },
-  keyboardAvoidingView: {
-    flex: 1, // this means the keyboardAvoidingView will take up the full height of the screen
+  headerGradient: {
+    paddingBottom: Spacing.base,
+  },
+  headerSafeArea: {
+    paddingTop: Spacing.base,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing.base,
+  },
+  backButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.full,
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: Typography.size.xl,
+    fontWeight: Typography.weight.bold as any,
+    color: Colors.text.white,
+    textAlign: 'center',
+  },
+  headerSpacer: {
+    width: 48, // Same width as back button
+  },
+  keyboardAvoid: {
+    flex: 1,
   },
   scrollView: {
     flex: 1,
   },
-  scrollViewContent: {
+  scrollContent: {
     flexGrow: 1,
   },
-  header: {
+  contentContainer: {
+    marginTop: -Spacing.base,
+    paddingHorizontal: Spacing.base,
+  },
+  sectionCard: {
+    marginBottom: Spacing.base,
+  },
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    marginBottom: Spacing.lg,
   },
-  backButton: {
-    padding: 8,
+  sectionTitle: {
+    fontSize: Typography.size.xl,
+    fontWeight: Typography.weight.bold as any,
+    color: Colors.text.primary,
+    marginLeft: Spacing.md,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+  inputGroup: {
+    marginBottom: Spacing.lg,
+  },
+  inputLabel: {
+    fontSize: Typography.size.base,
+    fontWeight: Typography.weight.semibold as any,
+    color: Colors.text.primary,
+    marginBottom: Spacing.sm,
+  },
+  textInput: {
+    backgroundColor: Colors.background.primary,
+    borderWidth: 2,
+    borderColor: Colors.border.light,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.md,
+    fontSize: Typography.size.base,
+    color: Colors.text.primary,
+    minHeight: 48,
+  },
+  bioInput: {
+    minHeight: 100,
+    paddingTop: Spacing.md,
+  },
+  inputWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.primary,
+    borderWidth: 2,
+    borderColor: Colors.border.light,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.base,
+    minHeight: 48,
+  },
+  textInputWithIcon: {
     flex: 1,
-    textAlign: 'center',
+    paddingVertical: Spacing.md,
+    paddingLeft: Spacing.sm,
+    fontSize: Typography.size.base,
+    color: Colors.text.primary,
   },
-  saveButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  saveButtonText: {
-    color: '#007AFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  formContainer: {
-    padding: 16,
-  },
-  fieldContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#333',
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  dateButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+  interestInputContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: Spacing.lg,
   },
-  dateButtonText: {
-    fontSize: 16,
-    color: '#333',
+  interestInput: {
+    flex: 1,
+    backgroundColor: Colors.background.primary,
+    borderWidth: 2,
+    borderColor: Colors.border.light,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.md,
+    fontSize: Typography.size.base,
+    color: Colors.text.primary,
+    marginRight: Spacing.sm,
+    minHeight: 48,
+  },
+  addInterestButton: {
+    backgroundColor: Colors.primary,
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.sm,
   },
   interestsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 12,
+    gap: Spacing.sm,
   },
   interestTag: {
-    backgroundColor: '#007AFF',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    margin: 4,
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: Colors.primaryUltraLight,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
   },
   interestText: {
-    color: '#fff',
-    fontSize: 14,
-    marginRight: 4,
+    color: Colors.primary,
+    fontSize: Typography.size.sm,
+    fontWeight: Typography.weight.medium as any,
+    marginRight: Spacing.xs,
   },
   removeInterestButton: {
     padding: 2,
   },
-  addInterestContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  saveButtonContainer: {
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
-  addInterestInput: {
-    flex: 1,
-    marginRight: 8,
-  },
-  addButton: {
-    padding: 8,
+  saveButton: {
+    width: '100%',
   },
   bottomSpacer: {
-    height: 100, // Extra space at bottom to ensure content is accessible
+    height: Spacing['3xl'],
   },
 }); 

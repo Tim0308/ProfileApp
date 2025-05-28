@@ -1,21 +1,31 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { Event } from '../types';
+import { AnimatedCard } from './AnimatedCard';
+import { Colors, Typography, Spacing, BorderRadius } from '../styles/theme';
 
 interface EventCardProps {
   event: Event;
-  onPress?: () => void;
+  onPress: () => void;
 }
 
 export const EventCard: React.FC<EventCardProps> = ({ event, onPress }) => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return format(date, 'MMMM d, yyyy \'at\' h:mm a');
+    return {
+      day: format(date, 'd'),
+      month: format(date, 'MMM'),
+      time: format(date, 'h:mm a'),
+    };
   };
 
-  const renderStars = (rating: number) => {
+  const { day, month, time } = formatDate(event.date);
+
+  const renderRatingStars = () => {
+    if (!event.rating) return null;
+    
     const stars = [];
     for (let i = 1; i <= 5; i++) {
       stars.push(
@@ -23,8 +33,8 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onPress }) => {
           key={i}
           name="star"
           size={14}
-          color={i <= rating ? '#FFD700' : '#E0E0E0'}
-          style={{ marginLeft: 2 }}
+          color={i <= event.rating ? Colors.star : Colors.starInactive}
+          style={styles.star}
         />
       );
     }
@@ -32,97 +42,183 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onPress }) => {
   };
 
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.titleContainer}>
-        <Text style={styles.title}>{event.title}</Text>
-        <View style={styles.ratingContainer}>
-          {event.rated && event.rating && (
-            <View style={styles.starsRow}>
-              {renderStars(event.rating)}
+    <AnimatedCard onPress={onPress} style={styles.cardContainer}>
+      <View style={styles.cardContent}>
+        {/* Date Badge */}
+        <View style={styles.dateBadge}>
+          <Text style={styles.dateDay}>{day}</Text>
+          <Text style={styles.dateMonth}>{month}</Text>
+        </View>
+
+        {/* Event Content */}
+        <View style={styles.eventContent}>
+          <View style={styles.headerRow}>
+            <Text style={styles.title} numberOfLines={2}>
+              {event.title}
+            </Text>
+            {event.rated && (
+              <View style={styles.ratingBadge}>
+                <MaterialIcons name="star" size={12} color={Colors.star} />
+                <Text style={styles.ratingText}>{event.rating}</Text>
+              </View>
+            )}
+          </View>
+
+          <Text style={styles.description} numberOfLines={2}>
+            {event.description}
+          </Text>
+
+          <View style={styles.detailsRow}>
+            <View style={styles.locationRow}>
+              <MaterialIcons 
+                name="location-on" 
+                size={14} 
+                color={Colors.text.tertiary} 
+              />
+              <Text style={styles.location} numberOfLines={1}>
+                {event.location}
+              </Text>
+            </View>
+            
+            <View style={styles.timeRow}>
+              <MaterialIcons 
+                name="schedule" 
+                size={14} 
+                color={Colors.text.tertiary} 
+              />
+              <Text style={styles.time}>{time}</Text>
+            </View>
+          </View>
+
+          {/* Rating Stars */}
+          {event.rating && (
+            <View style={styles.starsContainer}>
+              {renderRatingStars()}
             </View>
           )}
-          {event.rated && !event.rating && (
-            <MaterialIcons name="star" size={20} color="#FFD700" style={styles.starIcon} />
-          )}
+        </View>
+
+        {/* Arrow Indicator */}
+        <View style={styles.arrowContainer}>
+          <MaterialIcons 
+            name="chevron-right" 
+            size={20} 
+            color={Colors.text.tertiary} 
+          />
         </View>
       </View>
-      <Text style={styles.description}>{event.description}</Text>
-      <Text style={styles.location}>📍 {event.location}</Text>
-      <Text style={styles.date}>{formatDate(event.date)}</Text>
-      
-      {/* Tap indicator */}
-      <View style={styles.tapIndicator}>
-        <Text style={styles.tapText}>Tap for details</Text>
-        <MaterialIcons name="chevron-right" size={16} color="#999" />
-      </View>
-    </TouchableOpacity>
+    </AnimatedCard>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#fff',
-    padding: 16,
-    marginVertical: 8,
-    marginHorizontal: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+  cardContainer: {
+    marginHorizontal: Spacing.base,
+    marginVertical: Spacing.sm,
   },
-  titleContainer: {
+  cardContent: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 0, // AnimatedCard already has padding
+  },
+  dateBadge: {
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     alignItems: 'center',
+    minWidth: 50,
+    marginRight: Spacing.base,
+  },
+  dateDay: {
+    fontSize: Typography.size.lg,
+    fontWeight: Typography.weight.bold as any,
+    color: Colors.text.white,
+    lineHeight: Typography.size.lg * Typography.lineHeight.tight,
+  },
+  dateMonth: {
+    fontSize: Typography.size.xs,
+    fontWeight: Typography.weight.medium as any,
+    color: Colors.text.white,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  eventContent: {
+    flex: 1,
+    marginRight: Spacing.sm,
+  },
+  headerRow: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'flex-start',
+    marginBottom: Spacing.xs,
   },
   title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: Typography.size.lg,
+    fontWeight: Typography.weight.semibold as any,
+    color: Colors.text.primary,
+    lineHeight: Typography.size.lg * Typography.lineHeight.tight,
     flex: 1,
+    marginRight: Spacing.sm,
   },
-  ratingContainer: {
-    alignItems: 'flex-end',
-  },
-  starsRow: {
+  ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: Colors.accent,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
   },
-  starIcon: {
-    marginLeft: 8,
+  ratingText: {
+    fontSize: Typography.size.xs,
+    fontWeight: Typography.weight.semibold as any,
+    color: Colors.text.white,
+    marginLeft: 2,
   },
   description: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-    lineHeight: 20,
+    fontSize: Typography.size.sm,
+    color: Colors.text.secondary,
+    lineHeight: Typography.size.sm * Typography.lineHeight.relaxed,
+    marginBottom: Spacing.md,
   },
-  location: {
-    fontSize: 14,
-    color: '#888',
-    marginBottom: 4,
+  detailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
   },
-  date: {
-    fontSize: 14,
-    color: '#888',
-    fontStyle: 'italic',
-    marginBottom: 8,
-  },
-  tapIndicator: {
+  locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginTop: 4,
+    flex: 1,
+    marginRight: Spacing.base,
   },
-  tapText: {
-    fontSize: 12,
-    color: '#999',
-    marginRight: 4,
+  location: {
+    fontSize: Typography.size.sm,
+    color: Colors.text.tertiary,
+    marginLeft: Spacing.xs,
+    flex: 1,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  time: {
+    fontSize: Typography.size.sm,
+    color: Colors.text.tertiary,
+    marginLeft: Spacing.xs,
+  },
+  starsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  star: {
+    marginRight: 1,
+  },
+  arrowContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 24,
+    height: 24,
   },
 }); 

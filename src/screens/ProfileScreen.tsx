@@ -8,12 +8,17 @@ import {
   SafeAreaView,
   TouchableOpacity,
   ImageSourcePropType,
+  ScrollView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { EventCard } from '../components/EventCard';
 import { ImageZoomModal } from '../components/ImageZoomModal';
+import { AnimatedButton } from '../components/AnimatedButton';
+import { AnimatedCard } from '../components/AnimatedCard';
 import { UserProfile, Event } from '../types';
 import { ProfileScreenNavigationProp } from '../types/navigation';
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../styles/theme';
 import profileData from '../data/profile.json';
 
 interface ProfileScreenProps {
@@ -95,93 +100,166 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     return age;
   }, []);
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <FlatList
-        data={profile.attendedEvents}
-        renderItem={renderEventCard}
-        keyExtractor={(item) => item.id.toString()}
-        ListHeaderComponent={
-          <View style={styles.profileContainer}>
-            {/* Edit Button */}
-            <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
-              <MaterialIcons name="edit" size={20} color="#007AFF" />
-              <Text style={styles.editButtonText}>Edit Profile</Text>
-            </TouchableOpacity>
+  const renderHeader = () => (
+    <LinearGradient
+      colors={Colors.gradients.primary as [string, string]}
+      style={styles.headerGradient}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
+      <SafeAreaView style={styles.headerSafeArea}>
+        <View style={styles.headerContent}>
+          {/* Edit Button */}
+          <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
+            <MaterialIcons name="edit" size={18} color={Colors.text.white} />
+          </TouchableOpacity>
 
-            <TouchableOpacity onPress={handleImagePress}>
-              <Image
-                source={getImageSource()}
-                style={styles.profileImage}
-                defaultSource={require('../../assets/favicon.png')}
-              />
-            </TouchableOpacity>
-            
-            <Text style={styles.name}>{profile.name}</Text>
-            {profile.occupation && (
-              <Text style={styles.occupation}>{profile.occupation}</Text>
-            )}
-            {profile.location && (
-              <View style={styles.locationContainer}>
-                <MaterialIcons name="location-on" size={16} color="#666" />
-                <Text style={styles.location}>{profile.location}</Text>
-              </View>
-            )}
-            
-            <Text style={styles.bio}>{profile.bio}</Text>
-
-            {/* Personal Info Section */}
-            <View style={styles.infoSection}>
-              {profile.birthdate && (
-                <View style={styles.infoRow}>
-                  <MaterialIcons name="cake" size={16} color="#666" />
-                  <Text style={styles.infoText}>
-                    {formatDate(profile.birthdate)} ({calculateAge(profile.birthdate)} years old)
-                  </Text>
-                </View>
-              )}
-              {profile.email && (
-                <View style={styles.infoRow}>
-                  <MaterialIcons name="email" size={16} color="#666" />
-                  <Text style={styles.infoText}>{profile.email}</Text>
-                </View>
-              )}
-              {profile.phone && (
-                <View style={styles.infoRow}>
-                  <MaterialIcons name="phone" size={16} color="#666" />
-                  <Text style={styles.infoText}>{profile.phone}</Text>
-                </View>
-              )}
+          {/* Profile Image */}
+          <TouchableOpacity onPress={handleImagePress} style={styles.imageContainer}>
+            <Image
+              source={getImageSource()}
+              style={styles.profileImage}
+              defaultSource={require('../../assets/favicon.png')}
+            />
+            <View style={styles.imageOverlay}>
+              <MaterialIcons name="camera-alt" size={20} color={Colors.text.white} />
             </View>
+          </TouchableOpacity>
+          
+          <Text style={styles.name}>{profile.name}</Text>
+          {profile.occupation && (
+            <Text style={styles.occupation}>{profile.occupation}</Text>
+          )}
+          {profile.location && (
+            <View style={styles.locationContainer}>
+              <MaterialIcons name="location-on" size={16} color={Colors.text.white} />
+              <Text style={styles.location}>{profile.location}</Text>
+            </View>
+          )}
+        </View>
+      </SafeAreaView>
+    </LinearGradient>
+  );
 
-            {/* Interests Section */}
-            {profile.interests && profile.interests.length > 0 && (
-              <View style={styles.interestsSection}>
-                <Text style={styles.interestsTitle}>Interests</Text>
-                <View style={styles.interestsContainer}>
-                  {profile.interests.map((interest, index) => (
-                    <View key={index} style={styles.interestTag}>
-                      <Text style={styles.interestText}>{interest}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-            
-            <View style={styles.statsContainer}>
-              <Text style={styles.eventsCount}>
-                {profile.attendedEvents.length} Events Attended
+  const renderPersonalInfo = () => (
+    <AnimatedCard style={styles.infoCard}>
+      <Text style={styles.sectionTitle}>About</Text>
+      <Text style={styles.bio}>{profile.bio}</Text>
+
+      {/* Personal Details */}
+      <View style={styles.detailsContainer}>
+        {profile.birthdate && (
+          <View style={styles.detailRow}>
+            <View style={styles.iconWrapper}>
+              <MaterialIcons name="cake" size={18} color={Colors.primary} />
+            </View>
+            <View style={styles.detailContent}>
+              <Text style={styles.detailLabel}>Birthday</Text>
+              <Text style={styles.detailValue}>
+                {formatDate(profile.birthdate)} • {calculateAge(profile.birthdate)} years old
               </Text>
             </View>
-
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Past Events</Text>
+          </View>
+        )}
+        
+        {profile.email && (
+          <View style={styles.detailRow}>
+            <View style={styles.iconWrapper}>
+              <MaterialIcons name="email" size={18} color={Colors.primary} />
+            </View>
+            <View style={styles.detailContent}>
+              <Text style={styles.detailLabel}>Email</Text>
+              <Text style={styles.detailValue}>{profile.email}</Text>
             </View>
           </View>
-        }
+        )}
+        
+        {profile.phone && (
+          <View style={styles.detailRow}>
+            <View style={styles.iconWrapper}>
+              <MaterialIcons name="phone" size={18} color={Colors.primary} />
+            </View>
+            <View style={styles.detailContent}>
+              <Text style={styles.detailLabel}>Phone</Text>
+              <Text style={styles.detailValue}>{profile.phone}</Text>
+            </View>
+          </View>
+        )}
+      </View>
+    </AnimatedCard>
+  );
+
+  const renderInterests = () => {
+    if (!profile.interests || profile.interests.length === 0) return null;
+    
+    return (
+      <AnimatedCard style={styles.interestsCard}>
+        <Text style={styles.sectionTitle}>Interests</Text>
+        <View style={styles.interestsContainer}>
+          {profile.interests.map((interest, index) => (
+            <View key={index} style={styles.interestTag}>
+              <Text style={styles.interestText}>{interest}</Text>
+            </View>
+          ))}
+        </View>
+      </AnimatedCard>
+    );
+  };
+
+  const renderStats = () => (
+    <AnimatedCard style={styles.statsCard}>
+      <View style={styles.statsContainer}>
+        <View style={styles.statItem}>
+          <Text style={styles.statNumber}>{profile.attendedEvents.length}</Text>
+          <Text style={styles.statLabel}>Events Attended</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={styles.statNumber}>
+            {profile.attendedEvents.filter(e => e.rated).length}
+          </Text>
+          <Text style={styles.statLabel}>Events Rated</Text>
+        </View>
+      </View>
+    </AnimatedCard>
+  );
+
+  const renderEventsHeader = () => (
+    <View style={styles.eventsHeader}>
+      <Text style={styles.eventsTitle}>Past Events</Text>
+      <Text style={styles.eventsSubtitle}>
+        Tap any event to view details and rate your experience
+      </Text>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContainer}
-      />
+        contentContainerStyle={styles.scrollContent}
+      >
+        {renderHeader()}
+        
+        <View style={styles.contentContainer}>
+          {renderPersonalInfo()}
+          {renderInterests()}
+          {renderStats()}
+          {renderEventsHeader()}
+          
+          {/* Events List */}
+          {profile.attendedEvents.map((event, index) => (
+            <EventCard
+              key={event.id}
+              event={event}
+              onPress={() => handleEventPress(event)}
+            />
+          ))}
+          
+          <View style={styles.bottomSpacer} />
+        </View>
+      </ScrollView>
 
       <ImageZoomModal
         visible={isImageModalVisible}
@@ -189,148 +267,196 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         onClose={() => setIsImageModalVisible(false)}
         onImageChange={handleImageChange}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.background.secondary,
   },
-  listContainer: {
-    paddingBottom: 20,
+  scrollView: {
+    flex: 1,
   },
-  profileContainer: {
-    backgroundColor: '#fff',
+  scrollContent: {
+    flexGrow: 1,
+  },
+  headerGradient: {
+    paddingBottom: Spacing['2xl'],
+  },
+  headerSafeArea: {
+    paddingTop: Spacing.base,
+  },
+  headerContent: {
     alignItems: 'center',
-    paddingVertical: 30,
-    paddingHorizontal: 20,
-    marginBottom: 10,
+    paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing.lg,
   },
   editButton: {
     position: 'absolute',
-    top: 16,
-    right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0f8ff',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    top: 0,
+    right: Spacing.base,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.full,
     zIndex: 1,
   },
-  editButtonText: {
-    color: '#007AFF',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 4,
+  imageContainer: {
+    position: 'relative',
+    marginBottom: Spacing.lg,
   },
   profileImage: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    marginBottom: 20,
-    borderWidth: 3,
-    borderColor: '#e0e0e0',
+    borderWidth: 4,
+    borderColor: Colors.text.white,
+  },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: Colors.primary,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 2,
+    borderColor: Colors.text.white,
   },
   name: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    fontSize: Typography.size['3xl'],
+    fontWeight: Typography.weight.bold as any,
+    color: Colors.text.white,
+    marginBottom: Spacing.xs,
     textAlign: 'center',
   },
   occupation: {
-    fontSize: 16,
-    color: '#007AFF',
-    fontWeight: '600',
-    marginBottom: 8,
+    fontSize: Typography.size.lg,
+    fontWeight: Typography.weight.medium as any,
+    color: Colors.text.white,
+    marginBottom: Spacing.sm,
     textAlign: 'center',
+    opacity: 0.9,
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
   },
   location: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 4,
+    fontSize: Typography.size.base,
+    color: Colors.text.white,
+    marginLeft: Spacing.xs,
+    opacity: 0.8,
+  },
+  contentContainer: {
+    marginTop: -Spacing.xl,
+    paddingHorizontal: Spacing.base,
+  },
+  infoCard: {
+    marginBottom: Spacing.base,
+  },
+  sectionTitle: {
+    fontSize: Typography.size.xl,
+    fontWeight: Typography.weight.bold as any,
+    color: Colors.text.primary,
+    marginBottom: Spacing.base,
   },
   bio: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 20,
-    paddingHorizontal: 20,
+    fontSize: Typography.size.base,
+    color: Colors.text.secondary,
+    lineHeight: Typography.size.base * Typography.lineHeight.relaxed,
+    marginBottom: Spacing.lg,
   },
-  infoSection: {
-    alignSelf: 'stretch',
-    marginBottom: 20,
+  detailsContainer: {
+    gap: Spacing.base,
   },
-  infoRow: {
+  detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    paddingHorizontal: 20,
   },
-  infoText: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 8,
+  iconWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primaryUltraLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  detailContent: {
     flex: 1,
   },
-  interestsSection: {
-    alignSelf: 'stretch',
-    marginBottom: 20,
+  detailLabel: {
+    fontSize: Typography.size.sm,
+    fontWeight: Typography.weight.medium as any,
+    color: Colors.text.tertiary,
+    marginBottom: 2,
   },
-  interestsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
-    paddingHorizontal: 20,
+  detailValue: {
+    fontSize: Typography.size.base,
+    color: Colors.text.primary,
+  },
+  interestsCard: {
+    marginBottom: Spacing.base,
   },
   interestsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 16,
+    gap: Spacing.sm,
   },
   interestTag: {
-    backgroundColor: '#e3f2fd',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    margin: 4,
+    backgroundColor: Colors.primaryUltraLight,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
   },
   interestText: {
-    color: '#1976d2',
-    fontSize: 12,
-    fontWeight: '500',
+    color: Colors.primary,
+    fontSize: Typography.size.sm,
+    fontWeight: Typography.weight.medium as any,
+  },
+  statsCard: {
+    marginBottom: Spacing.lg,
   },
   statsContainer: {
-    backgroundColor: '#f8f9fa',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 20,
-    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  eventsCount: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#555',
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
   },
-  sectionHeader: {
-    alignSelf: 'stretch',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
+  statNumber: {
+    fontSize: Typography.size['2xl'],
+    fontWeight: Typography.weight.bold as any,
+    color: Colors.primary,
+    marginBottom: Spacing.xs,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+  statLabel: {
+    fontSize: Typography.size.sm,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: Colors.border.light,
+    marginHorizontal: Spacing.lg,
+  },
+  eventsHeader: {
+    marginBottom: Spacing.lg,
+  },
+  eventsTitle: {
+    fontSize: Typography.size.xl,
+    fontWeight: Typography.weight.bold as any,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
+  },
+  eventsSubtitle: {
+    fontSize: Typography.size.base,
+    color: Colors.text.secondary,
+  },
+  bottomSpacer: {
+    height: Spacing['2xl'],
   },
 }); 
