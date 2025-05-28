@@ -119,29 +119,44 @@ export interface UserProfile {
 - ✅ **Optional Fields**: Uses optional properties for flexible data
 - ✅ **Extensible**: Easy to add new fields without breaking existing code
 - ✅ **Nested Types**: Proper handling of complex nested objects (coordinates)
+- ✅ **Clarity**: Clear and understandable type definitions that improve code readability and maintainability
 
 ### `/src/types/navigation.ts`
 **Purpose**: Navigation type safety and parameter definitions
 
 ```typescript
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RouteProp } from '@react-navigation/native';
+import { Event, UserProfile } from './index';
+
 export type RootStackParamList = {
-  Profile: undefined;
+  Profile: {
+    profile: UserProfile;
+  };
   EventDetail: {
     event: Event;
-    onUpdateEvent: (updatedEvent: Event) => void;
   };
   EditProfile: {
     profile: UserProfile;
     onUpdateProfile: (updatedProfile: UserProfile) => void;
   };
 };
+
+export type ProfileScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Profile'>;
+export type EventDetailScreenNavigationProp = StackNavigationProp<RootStackParamList, 'EventDetail'>;
+export type EditProfileScreenNavigationProp = StackNavigationProp<RootStackParamList, 'EditProfile'>;
+
+export type ProfileScreenRouteProp = RouteProp<RootStackParamList, 'Profile'>;
+export type EventDetailScreenRouteProp = RouteProp<RootStackParamList, 'EventDetail'>;
+export type EditProfileScreenRouteProp = RouteProp<RootStackParamList, 'EditProfile'>;
 ```
 
 **Analysis**:
 - ✅ **Type Safety**: Ensures navigation parameters are correctly typed
 - ✅ **Callback Patterns**: Proper typing for callback functions
 - ✅ **Centralized**: Single source of truth for navigation structure
-- ⚠️ **Serialization Warning**: Functions in navigation params cause warnings (acceptable trade-off)
+- ✅ **Improved Serialization**: Removed `onUpdateEvent` from `EventDetail` params, resolving potential serialization warnings and aligning with React Navigation best practices by using event listeners for such updates
+- ✅ **Clear Param Definitions**: `Profile` screen now correctly typed to receive `profile` data as an initial param
 
 ### `/src/data/profile.json`
 **Purpose**: Mock data for development and testing
@@ -315,44 +330,78 @@ const handleUpdateEvent = (updatedEvent: Event) => {
 
 ## State Management
 
-### Local State Strategy
+### Global and Local State Strategy
 
-The app uses React hooks for state management with a focus on component-level state:
+The app now employs a mix of global (in `App.tsx`) and local component state:
 
-#### 1. **Profile State Management**
+#### 1. **Global Profile State (`App.tsx`)**
 ```typescript
+// App.tsx
 const [profile, setProfile] = useState<UserProfile>(profileData);
+```
+- **Purpose**: Holds the main `UserProfile` data, including `attendedEvents`. This state is the single source of truth for profile information that might be shared or need consistent updates across different parts of the navigation stack.
+- **Updates**: Primarily updated via the `screenListeners` for event changes (ratings) and potentially by other global actions in the future.
+
+#### 2. **Screen-Level State (`ProfileScreen.tsx`)**
+```typescript
+// ProfileScreen.tsx
+const [profile, setProfile] = useState<UserProfile>(route.params.profile); // Initialized from App.tsx
 const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
 const [isImageModalVisible, setIsImageModalVisible] = useState(false);
 ```
+- **Purpose**: `ProfileScreen` receives the `profile` from `App.tsx` via `route.params`. It manages its own copy for direct modifications (like profile edits via `handleUpdateProfile`). It also manages UI-specific state like `profileImageUri` and `isImageModalVisible`.
+- **Synchronization**:
+    - Receives initial and updated `profile` (including event updates) from `App.tsx` through `route.params.profile`.
+    - Directly updates its local `profile` state when `handleUpdateProfile` is called by `EditProfileScreen`.
 
-**Analysis**:
-- ✅ **Type Safety**: All state is properly typed
-- ✅ **Separation of Concerns**: Different aspects of state are separated
-- ✅ **Default Values**: Proper initialization with fallback values
-
-#### 2. **Event State Management**
+#### 3. **Screen-Level State (`EventDetailScreen.tsx`)**
 ```typescript
-const [currentEvent, setCurrentEvent] = useState(event);
+// EventDetailScreen.tsx
+const { event } = route.params; // Initial event data
+const [currentEvent, setCurrentEvent] = useState<Event>(event);
 ```
+- **Purpose**: Manages the state of the specific event being viewed, particularly its rating.
+- **Synchronization**:
+    - Receives initial `event` data via `route.params`.
+    - Updates `currentEvent` locally when a rating is given.
+    - Dispatches `UPDATE_EVENT` action before navigating away if `currentEvent` has changed, to inform `App.tsx`.
+
+#### 4. **Screen-Level State (`EditProfileScreen.tsx`)**
+```typescript
+// EditProfileScreen.tsx
+const { profile: initialProfile, onUpdateProfile } = route.params;
+const [editedProfile, setEditedProfile] = useState<UserProfile>(initialProfile);
+const [newInterest, setNewInterest] = useState('');
+```
+- **Purpose**: Manages the form state for editing profile details.
+- **Synchronization**:
+    - Receives initial `profile` data and `onUpdateProfile` callback via `route.params`.
+    - Updates `editedProfile` locally as the user types.
+    - Calls `onUpdateProfile(editedProfile)` on save, passing the changes back to `ProfileScreen`.
 
 **Strengths**:
-- ✅ **Local Scope**: Event details are managed locally for better performance
-- ✅ **Immediate Updates**: Changes are reflected immediately in the UI
-- ✅ **Rollback Capability**: Easy to implement undo functionality
+- ✅ **Clear Separation**: Global concerns (like consistent event data across potential future screens) are handled in `App.tsx`, while screen-specific logic and UI state remain local.
+- ✅ **Reduced Prop Drilling for Events**: Event updates no longer require drilling `onUpdateEvent` callback through multiple layers if the navigation stack were deeper.
+- ✅ **Type Safety**: All state variables and update functions are strongly typed.
+- ✅ **Optimized Re-renders**: Local state updates generally trigger re-renders only for the relevant components.
+
+**Considerations**:
+- **`App.tsx` State Complexity**: As the app grows, managing more global state in `App.tsx` might become cumbersome. For more complex scenarios, a dedicated state management library (like Redux Toolkit, Zustand, or React Query for server state) would be beneficial. The current approach is suitable for the app's present scale.
+- **ProfileScreen's Dual Role**: `ProfileScreen` now receives `profile` from `App.tsx` but also manages its own version that it updates from `EditProfileScreen`. This is a common pattern, but care must be taken to ensure consistency if `App.tsx` were to also directly modify parts of the profile that `EditProfileScreen` touches. For now, `EditProfileScreen` only calls back to `ProfileScreen`, which then updates its local copy. `App.tsx` only updates the `attendedEvents` part of the profile.
 
 ### State Flow Patterns
 
 #### 1. **Unidirectional Data Flow**
-```
-ProfileScreen → EventDetailScreen → Rating Update → Callback → ProfileScreen Update
-```
+- **Event Rating Update**:
+  `EventDetailScreen (local state change) → dispatches UPDATE_EVENT → App.tsx (global state update) → ProfileScreen (receives updated profile via route.params) → UI Re-render`
+- **Profile Info Update**:
+  `EditProfileScreen (local state change) → calls onUpdateProfile → ProfileScreen (local state update) → UI Re-render`
 
 #### 2. **Optimistic Updates**
-The app implements optimistic updates for better user experience:
-- Rating changes are immediately reflected in the UI
-- Profile edits are shown instantly
-- Rollback mechanisms are available for error scenarios
+- The app continues to implement optimistic updates:
+  - Ratings in `EventDetailScreen` are reflected immediately in its local UI.
+  - Profile edits in `EditProfileScreen` are shown instantly in its form fields.
+- The actual synchronization with the "source of truth" (`App.tsx` state for events, `ProfileScreen` state for profile info) happens upon action completion (navigation or save).
 
 ---
 
@@ -729,81 +778,99 @@ class ProfileService {
 
 #### 1. **Type Safety**
 - ✅ Comprehensive TypeScript implementation
-- ✅ Proper interface definitions
-- ✅ Type-safe navigation
+- ✅ Well-defined interfaces for props, state, and data models (`Event`, `UserProfile`).
+- ✅ Type-safe navigation with `RootStackParamList` and specific prop/route types for each screen.
 
 #### 2. **Component Design**
-- ✅ Reusable and composable components
-- ✅ Clear separation of concerns
-- ✅ Proper prop interfaces
+- ✅ **Modularity**: Reusable UI components (`AnimatedButton`, `AnimatedCard`, `EventCard`, `ImageZoomModal`) with clear responsibilities.
+- ✅ **Separation of Concerns**: Screens handle logic and data fetching/passing, while components focus on rendering UI based on props.
+- ✅ **Props Interfaces**: Clear and strongly-typed prop interfaces for all components and screens.
+- ✅ **Modern Styling**: Consistent use of the defined design system (`theme.ts`) for colors, typography, spacing, etc., resulting in a modern and cohesive UI.
 
 #### 3. **User Experience**
-- ✅ Intuitive navigation patterns
-- ✅ Responsive design
-- ✅ Proper error handling
+- ✅ **Intuitive Navigation**: Clear navigation flow between profile, event details, and editing screens.
+- ✅ **Interactive Elements**: Good use of animations (`AnimatedButton`, `AnimatedCard`) and touch feedback.
+- ✅ **Comprehensive Features**: Profile editing, image management, event rating, and map integration are well-implemented.
+- ✅ **Error Handling**: Includes user-friendly alerts for actions like image picking, saving profiles, and rating events.
+- ✅ **Loading States**: `AnimatedButton` includes a `loading` prop.
 
 #### 4. **Performance**
-- ✅ Efficient list rendering with FlatList
-- ✅ Optimized image handling
-- ✅ Minimal re-renders
+- ✅ **Memoization**: `useCallback` is used extensively for event handlers and functions passed as props, optimizing re-renders.
+- ✅ **Optimized Image Handling**: `expo-image-picker` allows for editing and quality settings.
+- ✅ **Native Animations**: `AnimatedButton` and `AnimatedCard` use `useNativeDriver: true` where possible for smoother animations.
+- ✅ **Efficient State Updates**: State updates generally follow immutable patterns.
+
+#### 5. **Code Structure & Readability**
+- ✅ **Clear File Organization**: Logical separation of components, screens, types, styles, and data.
+- ✅ **Consistent Naming**: Follows consistent naming conventions for files, components, variables, and functions.
+- ✅ **Well-Formatted Code**: Code is generally well-formatted, likely with the aid of a formatter like Prettier.
 
 ### Areas for Improvement
 
 #### 1. **Testing Coverage**
-- 🔄 Add comprehensive unit tests
-- 🔄 Implement integration tests
-- 🔄 Add E2E testing
+- 🔄 **Unit Tests**: While the review document mentions a testing strategy, no actual test files seem to be present. Adding unit tests for components (especially complex ones like `EditProfileScreen` or logic in `ImageZoomModal`) and utility functions (e.g., `calculateAge`, `formatDate` in `ProfileScreen`) is crucial.
+- 🔄 **Integration Tests**: Testing navigation flows and interactions between screens (e.g., rating an event and seeing the update on the profile screen) would be beneficial.
+- 🔄 **Snapshot Tests**: Could be used for UI components to catch unintended visual regressions.
 
-#### 2. **Accessibility**
-- 🔄 Add accessibility labels
-- 🔄 Implement screen reader support
-- 🔄 Add keyboard navigation
+#### 2. **Accessibility (A11y)**
+- 🔄 **Accessibility Labels**: Add `accessibilityLabel`, `accessibilityHint`, and `accessibilityRole` to interactive elements like buttons, icons, and list items to improve screen reader support.
+- 🔄 **Focus Management**: Ensure logical focus order, especially in modals and forms.
+- 🔄 **Color Contrast**: While the palette is modern, ensure all text and UI elements meet WCAG contrast guidelines.
 
-#### 3. **Error Handling**
-- 🔄 Implement global error boundary
-- 🔄 Add retry mechanisms
-- 🔄 Improve offline handling
+#### 3. **Advanced State Management for `App.tsx`**
+- 🔄 **Context API or Zustand/Redux**: If the `profile` state in `App.tsx` or the `screenListeners` logic becomes significantly more complex (e.g., more global actions or more shared state), consider refactoring to React Context with reducers, or a lightweight global state manager like Zustand, to improve organization and testability. For the current scope, it's acceptable.
+- 🔄 **Type Safety of `screenListeners` Action**: The `payload: any` in `UpdateEventAction` and the access `state.routes[0].state?.routes.slice(-1)[0]?.params` could be made more type-safe, perhaps by defining a more specific type for the nested navigation state if possible, or by adding more robust checks. The current type assertion `as UpdateEventAction` relies on the developer ensuring the structure.
 
-#### 4. **Documentation**
-- 🔄 Add inline code documentation
-- 🔄 Create component documentation
-- 🔄 Add API documentation
+#### 4. **Error Handling & Robustness**
+- 🔄 **Global Error Boundary**: Implement a global React error boundary at the root of the app to catch unhandled JavaScript errors and display a fallback UI.
+- 🔄 **API Error Handling (Future)**: When API calls are integrated, implement more sophisticated error handling (e.g., retries, specific error messages based on status codes).
+- 🔄 **Input Validation**: `EditProfileScreen` has basic validation (name/bio required). Consider more comprehensive validation (e.g., email format, phone number format, date format for birthdate if it's not a date picker).
 
-### Code Metrics
+#### 5. **Documentation & Comments**
+- 🔄 **Inline Comments**: Add more inline comments for complex logic, especially within `useEffect` hooks, custom hooks (if any were introduced), and the navigation event listener in `App.tsx`.
+- 🔄 **JSDoc/TSDoc**: For public functions and component props, using JSDoc/TSDoc can improve hover-information in IDEs and help generate documentation.
+
+#### 6. **Magic Strings/Numbers**
+- 🔄 **Constants**: For strings like action types (`'UPDATE_EVENT'`), consider defining them as constants to avoid typos and improve maintainability. The `theme.ts` file does a great job of this for styles; the same principle can apply to other recurring values.
+
+### Code Metrics (Qualitative Assessment)
 
 #### 1. **Complexity**
-- **Cyclomatic Complexity**: Low to Medium
-- **Component Size**: Well-sized components
-- **File Organization**: Clear and logical
+- **Cyclomatic Complexity**: Generally low to medium. Some components like `ProfileScreen` and `EditProfileScreen` are larger due to rendering multiple sections, but the logic within functions is mostly straightforward. The `screenListeners` in `App.tsx` has a bit more conditional nesting.
+- **Component Size**: Most components are well-sized. Screens are larger but are broken down into multiple render functions for different sections, which aids readability.
+- **File Organization**: Clear and logical, promoting ease of navigation within the codebase.
 
 #### 2. **Maintainability**
-- **Code Duplication**: Minimal
-- **Coupling**: Low coupling between components
-- **Cohesion**: High cohesion within modules
+- **Code Duplication**: Minimal. Reusable components and the theme system significantly reduce duplication.
+- **Coupling**: Generally low. The recent navigation changes to use an event listener for event updates has further decoupled `EventDetailScreen` from `ProfileScreen`. `EditProfileScreen` still uses a direct callback, which is acceptable given its direct relationship.
+- **Cohesion**: High cohesion within modules and components. Files group related functionality well.
 
 #### 3. **Readability**
-- **Naming Conventions**: Consistent and descriptive
-- **Code Structure**: Well-organized and logical
-- **Comments**: Adequate where needed
+- **Naming Conventions**: Descriptive and consistent (e.g., `handleSave`, `renderPersonalInfo`).
+- **Code Structure**: Well-organized functions and JSX structure within components.
+- **Comments**: Present but could be more extensive for non-obvious logic.
 
 ---
 
 ## Conclusion
 
-ProfileApp demonstrates a well-architected React Native application with modern development practices. The codebase shows strong attention to type safety, user experience, and maintainable code structure. While there are areas for improvement, particularly in testing and accessibility, the foundation is solid and ready for production deployment.
+ProfileApp is a well-crafted React Native application that effectively showcases modern development practices, including a strong emphasis on TypeScript, a cohesive design system, and a good user experience with interactive elements. The recent refactoring of event updates using navigation listeners is a significant improvement, addressing serialization issues and improving decoupling.
 
-### Key Achievements
-1. **Comprehensive Feature Set**: All requested features implemented with attention to detail
-2. **Type Safety**: Full TypeScript integration with proper type definitions
-3. **User Experience**: Intuitive interface with proper feedback and error handling
-4. **Performance**: Optimized rendering and efficient state management
-5. **Maintainability**: Clean code structure with clear separation of concerns
+The codebase is clean, readable, and maintainable for its current size and complexity. The primary areas for future enhancement revolve around formalizing testing, bolstering accessibility, and preparing for more complex state management and API interactions as the application scales.
+
+### Key Achievements (Post-Refactor)
+1. **Comprehensive Feature Set**: All original features remain intact and functional.
+2. **Enhanced Type Safety & Navigation**: Robust TypeScript integration, including type-safe navigation parameters and event-driven updates resolving previous serialization warnings.
+3. **Modern UI/UX**: Consistent and aesthetically pleasing UI thanks to the comprehensive `theme.ts` and animated components.
+4. **Improved Decoupling**: Event updates are now handled more globally, reducing direct dependencies between `ProfileScreen` and `EventDetailScreen`.
+5. **Performance**: Continued use of `useCallback`, native animations, and efficient state handling contributes to good performance.
 
 ### Recommended Next Steps
-1. Implement comprehensive testing suite
-2. Add accessibility features
-3. Integrate with backend API
-4. Add offline support
-5. Implement analytics and monitoring
+1.  **Implement Testing Suite**: Prioritize unit tests for components and utility functions, followed by integration tests for key user flows.
+2.  **Enhance Accessibility (A11y)**: Add `accessibilityLabel`, `role`, etc., to all interactive elements and test with screen readers.
+3.  **Refine Input Validation**: Add more specific input validation in `EditProfileScreen`.
+4.  **Consider Global Error Boundary**: For enhanced production stability.
+5.  **Documentation**: Augment inline comments and consider JSDoc for key functions/components.
+6.  **API Integration Planning**: Strategize how API calls will integrate with the current state management approach or if a library like React Query/SWR would be beneficial.
 
-The codebase provides an excellent foundation for a production mobile application and demonstrates proficiency in modern React Native development practices. 
+The application stands as a strong example of a well-structured Expo and React Native project, demonstrating proficiency in building feature-rich mobile applications. 

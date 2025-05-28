@@ -2,6 +2,32 @@
 
 A React Native application built with Expo and TypeScript that displays a user profile and their attended events list with advanced interactive features.
 
+## Getting Started
+
+### Prerequisites
+- Node.js (v14 or later)
+- Expo CLI
+- iOS Simulator or Android Emulator (or Expo Go app)
+
+### Installation
+1. Clone the repository
+2. Navigate to the ProfileApp directory
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+### Running the App
+```bash
+npm start
+```
+
+This will start the Expo development server. You can then:
+- Press `i` to open iOS simulator
+- Press `a` to open Android emulator
+- For IOS, download Expo Go from apple store and Scan the QR code displayed on the terminal with your phone camera. 
+
+
 ## Features
 
 ### Core Features
@@ -68,36 +94,12 @@ src/
 ├── screens/
 │   ├── ProfileScreen.tsx      # Main profile screen
 │   └── EventDetailScreen.tsx  # Event detail screen
+│   └── EditProfileScrenn.tsx  # Edit user profile screen
 ├── types/
 │   └── index.ts              # TypeScript interfaces
 └── data/
     └── profile.json          # Sample user data
 ```
-
-## Getting Started
-
-### Prerequisites
-- Node.js (v14 or later)
-- Expo CLI
-- iOS Simulator or Android Emulator (or Expo Go app)
-
-### Installation
-1. Clone the repository
-2. Navigate to the ProfileApp directory
-3. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-### Running the App
-```bash
-npm start
-```
-
-This will start the Expo development server. You can then:
-- Press `i` to open iOS simulator
-- Press `a` to open Android emulator
-- For IOS, download Expo Go from apple store and Scan the QR code displayed on the terminal with your phone camera. 
 
 ## Usage Guide
 
@@ -144,47 +146,13 @@ Modify component stylesheets for:
 - Typography
 - Animation effects
 
-### Features Extension
-The modular architecture supports easy addition of:
-- More profile fields
-- Additional event metadata
-- Social features
-- Data persistence
-- API integration
-
-## Performance Considerations
-
-- **FlatList**: Efficient rendering for large event lists
-- **Image Optimization**: Compressed images with quality settings
-- **Navigation**: Stack navigation with proper memory management
-- **State Management**: Optimized re-renders with React hooks
-
-## Platform Support
-
-- **iOS**: Full feature support including maps and camera
-- **Android**: Full feature support including maps and camera
-- **Web**: Limited support (no camera, basic maps)
-
-## Troubleshooting
-
-### Common Issues
-1. **Maps not loading**: Ensure proper API keys for production
-2. **Camera permissions**: Check device settings if denied
-3. **Navigation errors**: Verify React Navigation setup
-4. **Image picker issues**: Ensure proper permissions
-
-### Development Tips
-- Use Expo Go for quick testing
-- Check console for detailed error messages
-- Verify all dependencies are properly installed
-- Test on both iOS and Android platforms
 
 ## Future Enhancements
 
 Potential features for future development:
 - **Data Persistence**: Local storage or cloud sync
 - **Social Features**: Share events, friend connections
-- **Event Creation**: Add new events functionality
+- **Third-Party UI library**: Add more interactive and visual appealing UI componenet
 - **Advanced Maps**: Directions, nearby events
 - **Push Notifications**: Event reminders
 - **Offline Support**: Cached data and images 
