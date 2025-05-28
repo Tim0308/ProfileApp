@@ -11,7 +11,13 @@ A React Native application built with Expo and TypeScript that displays a user p
 
 ### Installation
 1. Clone the repository
+   ```bash
+   git clone https://github.com/Tim0308/ProfileApp.git
+   ```
 2. Navigate to the ProfileApp directory
+   ```bash
+   e.g: cd ProfileApp
+   ```
 3. Install dependencies:
    ```bash
    npm install
