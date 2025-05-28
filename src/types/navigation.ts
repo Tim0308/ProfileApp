@@ -7,10 +7,11 @@ import { Event, UserProfile } from './index';
 // non-serializable values. This is expected and acceptable for our use case
 // as we need to pass callbacks for data synchronization between screens.
 export type RootStackParamList = {
-  Profile: undefined;
+  Profile: {
+    profile: UserProfile;
+  };
   EventDetail: {
     event: Event;
-    onUpdateEvent: (updatedEvent: Event) => void;
   };
   EditProfile: {
     profile: UserProfile;
@@ -22,6 +23,8 @@ export type ProfileScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
   'Profile'
 >;
+
+export type ProfileScreenRouteProp = RouteProp<RootStackParamList, 'Profile'>;
 
 export type EventDetailScreenNavigationProp = StackNavigationProp<
   RootStackParamList,

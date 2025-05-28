@@ -17,16 +17,16 @@ import { ImageZoomModal } from '../components/ImageZoomModal';
 import { AnimatedButton } from '../components/AnimatedButton';
 import { AnimatedCard } from '../components/AnimatedCard';
 import { UserProfile, Event } from '../types';
-import { ProfileScreenNavigationProp } from '../types/navigation';
+import { ProfileScreenNavigationProp, ProfileScreenRouteProp } from '../types/navigation';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../styles/theme';
-import profileData from '../data/profile.json';
 
 interface ProfileScreenProps {
   navigation: ProfileScreenNavigationProp;
+  route: ProfileScreenRouteProp;
 }
 
-export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
-  const [profile, setProfile] = useState<UserProfile>(profileData);
+export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route }) => {
+  const [profile, setProfile] = useState<UserProfile>(route.params.profile);
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
   const [isImageModalVisible, setIsImageModalVisible] = useState(false);
 
@@ -51,21 +51,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     });
   }, [navigation, profile, handleUpdateProfile]);
 
-  const handleUpdateEvent = useCallback((updatedEvent: Event) => {
-    setProfile(prevProfile => ({
-      ...prevProfile,
-      attendedEvents: prevProfile.attendedEvents.map(event =>
-        event.id === updatedEvent.id ? updatedEvent : event
-      ),
-    }));
-  }, []);
-
   const handleEventPress = useCallback((event: Event) => {
     navigation.navigate('EventDetail', {
       event,
-      onUpdateEvent: handleUpdateEvent,
     });
-  }, [navigation, handleUpdateEvent]);
+  }, [navigation]);
 
   const renderEventCard = useCallback(({ item }: { item: Event }) => (
     <EventCard event={item} onPress={() => handleEventPress(item)} />

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -31,8 +31,21 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   route,
   navigation,
 }) => {
-  const { event, onUpdateEvent } = route.params;
+  const { event } = route.params;
   const [currentEvent, setCurrentEvent] = useState(event);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', () => {
+      if (currentEvent !== event) {
+        navigation.getParent()?.dispatch({
+          type: 'UPDATE_EVENT',
+          payload: currentEvent,
+        });
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, currentEvent, event]);
 
   const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
@@ -52,9 +65,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       rating: rating,
     };
     setCurrentEvent(updatedEvent);
-    onUpdateEvent(updatedEvent);
     Alert.alert('Rating Saved', `You rated this event ${rating} star${rating !== 1 ? 's' : ''}!`);
-  }, [currentEvent, onUpdateEvent]);
+  }, [currentEvent]);
 
   const renderStars = useCallback(() => {
     const stars = [];
