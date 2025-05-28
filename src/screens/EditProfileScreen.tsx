@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -29,44 +29,48 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [newInterest, setNewInterest] = useState('');
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     onUpdateProfile(editedProfile);
     Alert.alert('Success', 'Profile updated successfully!', [
       { text: 'OK', onPress: () => navigation.goBack() }
     ]);
-  };
+  }, [editedProfile, onUpdateProfile, navigation]);
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
+  const handleDateChange = useCallback((event: any, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === 'ios');
     if (selectedDate) {
-      setEditedProfile({
-        ...editedProfile,
+      setEditedProfile(prev => ({
+        ...prev,
         birthdate: selectedDate.toISOString().split('T')[0],
-      });
+      }));
     }
-  };
+  }, []);
 
-  const addInterest = () => {
+  const addInterest = useCallback(() => {
     if (newInterest.trim() && !editedProfile.interests.includes(newInterest.trim())) {
-      setEditedProfile({
-        ...editedProfile,
-        interests: [...editedProfile.interests, newInterest.trim()],
-      });
+      setEditedProfile(prev => ({
+        ...prev,
+        interests: [...prev.interests, newInterest.trim()],
+      }));
       setNewInterest('');
     }
-  };
+  }, [newInterest, editedProfile.interests]);
 
-  const removeInterest = (interest: string) => {
-    setEditedProfile({
-      ...editedProfile,
-      interests: editedProfile.interests.filter(i => i !== interest),
-    });
-  };
+  const removeInterest = useCallback((interest: string) => {
+    setEditedProfile(prev => ({
+      ...prev,
+      interests: prev.interests.filter(i => i !== interest),
+    }));
+  }, []);
 
-  const formatDate = (dateString?: string) => {
+  const formatDate = useCallback((dateString?: string) => {
     if (!dateString) return 'Select Date';
     return new Date(dateString).toLocaleDateString();
-  };
+  }, []);
+
+  const updateProfileField = useCallback((field: keyof UserProfile, value: string) => {
+    setEditedProfile(prev => ({ ...prev, [field]: value }));
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -102,9 +106,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
               <TextInput
                 style={styles.input}
                 value={editedProfile.name}
-                onChangeText={(text) =>
-                  setEditedProfile({ ...editedProfile, name: text })
-                }
+                onChangeText={(text) => updateProfileField('name', text)}
                 placeholder="Enter your name"
                 returnKeyType="next"
               />
@@ -116,9 +118,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
               <TextInput
                 style={[styles.input, styles.textArea]}
                 value={editedProfile.bio}
-                onChangeText={(text) =>
-                  setEditedProfile({ ...editedProfile, bio: text })
-                }
+                onChangeText={(text) => updateProfileField('bio', text)}
                 placeholder="Tell us about yourself"
                 multiline
                 numberOfLines={3}
@@ -132,9 +132,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
               <TextInput
                 style={styles.input}
                 value={editedProfile.email || ''}
-                onChangeText={(text) =>
-                  setEditedProfile({ ...editedProfile, email: text })
-                }
+                onChangeText={(text) => updateProfileField('email', text)}
                 placeholder="Enter your email"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -148,9 +146,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
               <TextInput
                 style={styles.input}
                 value={editedProfile.phone || ''}
-                onChangeText={(text) =>
-                  setEditedProfile({ ...editedProfile, phone: text })
-                }
+                onChangeText={(text) => updateProfileField('phone', text)}
                 placeholder="Enter your phone number"
                 keyboardType="phone-pad"
                 returnKeyType="next"
@@ -163,9 +159,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
               <TextInput
                 style={styles.input}
                 value={editedProfile.location || ''}
-                onChangeText={(text) =>
-                  setEditedProfile({ ...editedProfile, location: text })
-                }
+                onChangeText={(text) => updateProfileField('location', text)}
                 placeholder="Enter your location"
                 returnKeyType="next"
               />

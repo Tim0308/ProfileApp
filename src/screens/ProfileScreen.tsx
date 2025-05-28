@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -27,63 +27,63 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 
   const defaultProfileImage = require('../../assets/profilepic.png');
 
-  const handleImagePress = () => {
+  const handleImagePress = useCallback(() => {
     setIsImageModalVisible(true);
-  };
+  }, []);
 
-  const handleImageChange = (newImageUri: string) => {
+  const handleImageChange = useCallback((newImageUri: string) => {
     setProfileImageUri(newImageUri);
-  };
+  }, []);
 
-  const handleEditProfile = () => {
+  const handleUpdateProfile = useCallback((updatedProfile: UserProfile) => {
+    setProfile(updatedProfile);
+  }, []);
+
+  const handleEditProfile = useCallback(() => {
     navigation.navigate('EditProfile', {
       profile,
       onUpdateProfile: handleUpdateProfile,
     });
-  };
+  }, [navigation, profile, handleUpdateProfile]);
 
-  const handleUpdateProfile = (updatedProfile: UserProfile) => {
-    setProfile(updatedProfile);
-  };
-
-  const handleEventPress = (event: Event) => {
-    navigation.navigate('EventDetail', {
-      event,
-      onUpdateEvent: handleUpdateEvent,
-    });
-  };
-
-  const handleUpdateEvent = (updatedEvent: Event) => {
+  const handleUpdateEvent = useCallback((updatedEvent: Event) => {
     setProfile(prevProfile => ({
       ...prevProfile,
       attendedEvents: prevProfile.attendedEvents.map(event =>
         event.id === updatedEvent.id ? updatedEvent : event
       ),
     }));
-  };
+  }, []);
 
-  const renderEventCard = ({ item }: { item: Event }) => (
+  const handleEventPress = useCallback((event: Event) => {
+    navigation.navigate('EventDetail', {
+      event,
+      onUpdateEvent: handleUpdateEvent,
+    });
+  }, [navigation, handleUpdateEvent]);
+
+  const renderEventCard = useCallback(({ item }: { item: Event }) => (
     <EventCard event={item} onPress={() => handleEventPress(item)} />
-  );
+  ), [handleEventPress]);
 
-  const getImageSource = (): ImageSourcePropType => {
+  const getImageSource = useCallback((): ImageSourcePropType => {
     return profileImageUri ? { uri: profileImageUri } : defaultProfileImage;
-  };
+  }, [profileImageUri, defaultProfileImage]);
 
-  const getImageUriForModal = (): string => {
+  const getImageUriForModal = useCallback((): string => {
     return profileImageUri || Image.resolveAssetSource(defaultProfileImage).uri;
-  };
+  }, [profileImageUri, defaultProfileImage]);
 
-  const formatDate = (dateString?: string) => {
+  const formatDate = useCallback((dateString?: string) => {
     if (!dateString) return null;
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     });
-  };
+  }, []);
 
-  const calculateAge = (birthdate?: string) => {
+  const calculateAge = useCallback((birthdate?: string) => {
     if (!birthdate) return null;
     const today = new Date();
     const birth = new Date(birthdate);
@@ -93,7 +93,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
       age--;
     }
     return age;
-  };
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>

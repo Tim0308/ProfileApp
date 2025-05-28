@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -29,12 +29,12 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const { event, onUpdateEvent } = route.params;
   const [currentEvent, setCurrentEvent] = useState(event);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
     return format(date, 'EEEE, MMMM d, yyyy \'at\' h:mm a');
-  };
+  }, []);
 
-  const handleRating = (rating: number) => {
+  const handleRating = useCallback((rating: number) => {
     const updatedEvent = {
       ...currentEvent,
       rated: true,
@@ -43,9 +43,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     setCurrentEvent(updatedEvent);
     onUpdateEvent(updatedEvent);
     Alert.alert('Rating Saved', `You rated this event ${rating} stars!`);
-  };
+  }, [currentEvent, onUpdateEvent]);
 
-  const renderStars = () => {
+  const renderStars = useCallback(() => {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
       stars.push(
@@ -67,7 +67,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       );
     }
     return stars;
-  };
+  }, [currentEvent.rating, handleRating]);
 
   const mapRegion = currentEvent.coordinates
     ? {
